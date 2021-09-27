@@ -9,6 +9,15 @@ from django.views.decorators.csrf import csrf_exempt
 
 # load your environment variables from .env file that
 # you can store anywhere in the project folder
+# Following the values that you would need in the .env file
+# 1. SLACK_BASE_URL - Slack base URL for API call
+# 2. SLACK_CHANNL_ID - Channel ID to see the details
+# 3. SF_BASE_URL - Salesforce Base URL
+# 4. SF_TOKEN - Auth token for Salesforce
+# 5. SLACK_BOT_TOKEN - Slack bot token to make API calls to Slack
+# 6. SECRET_KEY - Django secret key for the app
+
+load_dotenv(override=True)
 load_dotenv(find_dotenv())
 
 # Turn on the logging
