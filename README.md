@@ -6,8 +6,6 @@ run following commands using python package manager:
 
 ```pip install python-dotenv```
 
-```pip install django-cors-headers```
-
 
 
 
