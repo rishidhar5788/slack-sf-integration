@@ -2,10 +2,11 @@
 
 run following commands using python package manager:
 
-```pip install Django
-   pip install python-dotenv
-   pip install rest_framework
-    ```
+```pip install Django```
+
+```pip install python-dotenv```
+
+```pip install rest_framework```
 
 
 
