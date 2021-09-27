@@ -1,2 +1,3 @@
+# ignore all of these files
 .env
 .DS_Store
