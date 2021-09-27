@@ -20,8 +20,8 @@ show  up in slack using following custom slash command:
  	  for the cases that are created after the entered date in "YYYY-MM-DD" format
 
 load your environment variables from .env file that
-you can store anywhere in the project folder
-Following the values that you would need in the .env file
+you can store anywhere in the project folder.
+Following are the values that you would need in the .env file
  1. SLACK_BASE_URL - Slack base URL for API call
  2. SLACK_CHANNL_ID - Channel ID to see the details
  3. SF_BASE_URL - Salesforce Base URL
