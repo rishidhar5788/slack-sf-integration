@@ -139,7 +139,7 @@ def demo(request):
 				Looks like we have run into an issue! Don't worry :wink:, we have got you covered :grin: 
 				\n*Check one or more of these suggested problems:*\n
 				:white_check_mark: Salesforce permission issue\n
-				:white_check_mark: Case created before *2020-03-05*\n
+				:white_check_mark: If using the date in the slash command, check the format *YYYY-MM-DD*\n
 				:white_check_mark: No SF Case number entered\n
 				:white_check_mark: The Case is locked\n
 				:white_check_mark: Wrong input provided""")
