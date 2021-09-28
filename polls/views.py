@@ -153,10 +153,6 @@ def slack_channel_call(block_for_slack):
 		}
 	response = requests.request("POST", slk_url, headers=slk_headers, data=slk_payload.encode('utf-8'))
 
-	print("+============================")
-	print(slk_headers)
-	print("+============================")
-
 # prepare the json for the block to be sent as a response to slack
 def get_block_for_slack(assigned_to, final_sf_case_url,
 	sf_case_priority, sf_case_subject, sf_case_desc, sf_created_by):
