@@ -37,6 +37,7 @@ def admin_index(request):
 # 2. '/demo-sf date={YYYY-MM-DD}' - to show a very high level reporting 
 # 	  insight along with the case data in "demo-channels" slack channel
 # 	  for the cases that are created after the entered date in "YYYY-MM-DD" format
+
 @csrf_exempt
 def demo(request):
 # Section for high level reporting insight and granular information
@@ -57,36 +58,55 @@ def demo(request):
 		sf_response = requests.request("GET", sf_url, headers=sf_headers, data=sf_payload, files=files)
 
 		sf_block_prep_response = sf_response.json()
-		if sf_block_prep_response['totalSize'] is not 0 or None:
-			for val in sf_block_prep_response['records']:
-				assigned_to = val['Owner']['Name']
-				sf_case_url = val['attributes']['url']
+		sf_list = """{"type":"divider"}"""
+		try:
+			if sf_block_prep_response['totalSize'] is not 0 or None:	
+				for val in sf_block_prep_response['records']:
+					assigned_to = val['Owner']['Name']
+					sf_case_url = val['attributes']['url']
 
-				# extract url for the salesforce case
-				str_builder = sf_case_url.split('/', maxsplit=5)
-				final_sf_case_url = os.getenv('SF_BASE_URL') + "/lightning/r/" + str_builder[5] + "/view"
+					# extract url for the salesforce case
+					# /demo-sf date=2021-08-10
+					str_builder = sf_case_url.split('/', maxsplit=5)
+					final_sf_case_url = os.getenv('SF_BASE_URL') + "/lightning/r/" + str_builder[5] + "/view"
+					sf_case_priority = val['Priority'] if val['Priority'] is not None else "No Priority present in *Salesforce*"
+					sf_case_subject = val['Subject'] if val['Subject'] is not None else "No Subject present in *Salesforce*"
+					sf_case_desc = val['Description'] if val['Description'] is not None else "No description present in *Salesforce*"
+					sf_created_by = val['CreatedBy']['Name']
 
-				sf_case_priority = val['Priority'] if val['Priority'] is not None else "No Priority present in *Salesforce*"
-				sf_case_subject = val['Subject'] if val['Subject'] is not None else "No Subject present in *Salesforce*"
-				sf_case_desc = val['Description'] if val['Description'] is not None else "No description present in *Salesforce*"
-				sf_created_by = val['CreatedBy']['Name']
+					# block builder for slack
+					block_for_slack = get_block_for_slack(assigned_to,
+					final_sf_case_url, sf_case_priority, sf_case_subject, 
+					sf_case_desc, sf_created_by)
 
-				# block builder for slack
-				block_for_slack = get_block_for_slack(assigned_to,
-				final_sf_case_url, sf_case_priority, sf_case_subject, 
-				sf_case_desc, sf_created_by)
-				
+					# POST the block data from SF back to slack
+					# Response sent out to slack for showing the data in slack
+
+					sf_list = sf_list + ","+ block_for_slack
 
 				# POST the block data from SF back to slack
-				# Response sent out to slack for showing the data in slack
-				slack_channel_call(block_for_slack)
-
-			return HttpResponse("Total number of cases created after *" + sf_date[1] + "* are *" + str(sf_block_prep_response['totalSize']) + "* .\n"
-				":white_check_mark: Check the demo_channels for the complete case summary!")
+				# Response sent out to slack for showing the data in slack	
+				response1 = slack_channel_call(sf_list)
+				if """no more than 50 items allowed""" in response1:
+					return HttpResponse("Total number of cases created after *" + sf_date[1] + "* are *" + str(sf_block_prep_response['totalSize']) + "* .\n"
+					":x: *Sorry, can't show more than 5 case details because slack wouldn't allow* \n    *more than 50 items in blocks but we'll find a better solution* :grin: !")
+				else:
+					return HttpResponse(":white_check_mark: Total number of cases created after *" + sf_date[1] + "* are *" + str(sf_block_prep_response['totalSize']) + "* .\n"
+					":white_check_mark: Check the demo_channels for the complete case summary!")
+			else:
+				return HttpResponse(":x: Failed to retrieve records!")
+		except socket.error as why:
+			if why.args[0]==EWOULDBLOCK:
+				return 0
+			elif why.args[0]== _DISCONNECTED:
+				self.handle_close()
+				return 0
+			elif why.args[0]==EPROTOTYPE:
+				pass
 		else:
-			return HttpResponse(":x: Failed to retrieve records!")
+			raise
 
-# Section for high level case details on the input case number
+# Section for high level case details on the input salesforce case number
 	else:
 		try:
 			# Make a GET call to Salesforce to fetch case info
@@ -112,7 +132,6 @@ def demo(request):
 				# extract url for the salesforce case
 				str_builder = sf_case_url.split('/', maxsplit=5)
 				final_sf_case_url = os.getenv('SF_BASE_URL') + "/lightning/r/" + str_builder[5] + "/view"
-
 				sf_case_priority = sf_block_prep_response['records'][0]['Priority'] if sf_block_prep_response['records'][0]['Priority'] is not None else "No Priority present in *Salesforce*"
 				sf_case_subject = sf_block_prep_response['records'][0]['Subject'] if sf_block_prep_response['records'][0]['Subject'] is not None else "No Subject present in *Salesforce*"
 				sf_case_desc = sf_block_prep_response['records'][0]['Description'] if sf_block_prep_response['records'][0]['Description'] is not None else "No description present in *Salesforce*"
@@ -137,7 +156,7 @@ def demo(request):
 		else:
 			return HttpResponse(""":x: *Oh no*:exclamation::exclamation:\n 
 				Looks like we have run into an issue! Don't worry :wink:, we have got you covered :grin: 
-				\n*Check one or more of these suggested problems:*\n
+				\n*Check one or more of these suggested problem solutions:*\n
 				:white_check_mark: Salesforce permission issue\n
 				:white_check_mark: If using the date in the slash command, check the format *YYYY-MM-DD*\n
 				:white_check_mark: No SF Case number entered\n
@@ -146,17 +165,19 @@ def demo(request):
 
 def slack_channel_call(block_for_slack):
 	slk_url = os.getenv('SLACK_BASE_URL') + "chat.postMessage"
-	slk_payload = "{\"channel\": \"" + os.getenv('SLACK_CHANNL_ID') + "\",\"blocks\":" + block_for_slack + "}"
+	slk_payload = "{\"channel\": \"" + os.getenv('SLACK_CHANNL_ID') + "\",\"blocks\":[" + block_for_slack + "]}"
 	slk_headers = {
 			'Content-Type': 'application/json',
 			'Authorization': 'Bearer ' + os.getenv('SLACK_BOT_TOKEN')
+			# 'Authorization': 'Bearer xoxb-305040386276-2529624873766-8rvdG67v4VQIMjbjJYDkasHF'
 		}
 	response = requests.request("POST", slk_url, headers=slk_headers, data=slk_payload.encode('utf-8'))
+	return response.text
 
 # prepare the json for the block to be sent as a response to slack
 def get_block_for_slack(assigned_to, final_sf_case_url,
 	sf_case_priority, sf_case_subject, sf_case_desc, sf_created_by):
-	block = """[
+	block = """
 		{
 			"type": "section",
 			"text": {
@@ -217,6 +238,6 @@ def get_block_for_slack(assigned_to, final_sf_case_url,
 	      "text": "*Created By*\n:hammer:\n""" +sf_created_by+ """ "
 	    }
 	   }
-	]"""
+	"""
 
 	return block
