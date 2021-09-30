@@ -169,7 +169,6 @@ def slack_channel_call(block_for_slack):
 	slk_headers = {
 			'Content-Type': 'application/json',
 			'Authorization': 'Bearer ' + os.getenv('SLACK_BOT_TOKEN')
-			# 'Authorization': 'Bearer xoxb-305040386276-2529624873766-8rvdG67v4VQIMjbjJYDkasHF'
 		}
 	response = requests.request("POST", slk_url, headers=slk_headers, data=slk_payload.encode('utf-8'))
 	return response.text
